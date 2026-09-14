@@ -3,7 +3,6 @@ import type {
   AiPromptParameterKind,
   AiPromptResultMode,
 } from "./ai-assistant";
-import { resolveSupportedLocale } from "./i18n/locales";
 
 export type AiPromptSeedKey = Exclude<AiAction, "custom">;
 export type AiPromptSeedLocale = "zh-CN" | "en-US";
@@ -33,10 +32,8 @@ const seed = (
   translations: { "zh-CN": zhCN, "en-US": enUS },
 });
 
-export const normalizeAiPromptSeedLocale = (locale: string | null | undefined): AiPromptSeedLocale => {
-  const resolved = resolveSupportedLocale(locale);
-  return resolved === "zh-CN" ? "zh-CN" : "en-US";
-};
+export const normalizeAiPromptSeedLocale = (locale: string | null | undefined): AiPromptSeedLocale =>
+  locale?.toLowerCase().startsWith("en") ? "en-US" : "zh-CN";
 
 export const localizeAiPromptSeed = (
   promptSeed: AiPromptSeed,

@@ -90,7 +90,6 @@ import { registerPluginDistributionRoutes } from "./plugin-distribution-routes";
 import { registerSyncRoutes } from "./sync-routes";
 import { registerMemoRoutes } from "./memo-routes";
 import { registerScheduledTaskRoutes } from "./scheduled-task-routes";
-import { registerWorkspaceExtensionRoutes } from "./workspace-extension-routes";
 import { registerBackupRoutes } from "./backup-routes";
 import { registerMcpRoutes } from "./mcp-routes";
 import { executeWorkspaceTool } from "./mcp-tool-executor";
@@ -328,7 +327,6 @@ registerSyncRoutes(app, {
 registerTagRoutes(app);
 registerPluginDistributionRoutes(app);
 registerScheduledTaskRoutes(app);
-registerWorkspaceExtensionRoutes(app, { isDemoMode: (...args) => isDemoMode(...args) });
 registerMemoShareRoutes(app);
 registerTemplateRoutes(app, {
   createMemoRecord: (...args) => createMemoRecord(...args),

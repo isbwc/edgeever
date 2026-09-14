@@ -560,7 +560,6 @@ struct NotesListView: View {
                 density: density,
                 locale: env.preferences.resolvedLocale,
                 isEnglish: env.preferences.isEnglish,
-                language: env.preferences.uiLanguage,
                 sort: store.sort
             )
             .padding(density.cardPadding)
@@ -584,7 +583,6 @@ struct MemoCardContent: View {
     var density: ListDensity = .preview
     var locale: Locale = .current
     var isEnglish: Bool = false
-    var language: AppUILanguage = .chinese
     var sort: MemoSortMode = .updatedDesc
 
     var body: some View {
@@ -604,7 +602,7 @@ struct MemoCardContent: View {
             }
 
             if density.showsExcerpt {
-                Text(memo.excerpt.isEmpty ? emptyNoteLabel : memo.excerpt)
+                Text(memo.excerpt.isEmpty ? (isEnglish ? "Empty note" : "空笔记") : memo.excerpt)
                     .font(AppTheme.memoExcerptFont)
                     .foregroundStyle(AppTheme.body)
                     .lineLimit(2)
@@ -614,7 +612,7 @@ struct MemoCardContent: View {
             }
 
             HStack(alignment: .center, spacing: 8) {
-                Text("\(timestampLabel) \(MemoPreviewDate.format(timestampField.value(from: memo), locale: locale, isEnglish: isEnglish, language: language))")
+                Text("\(timestampLabel) \(MemoPreviewDate.format(timestampField.value(from: memo), locale: locale, isEnglish: isEnglish))")
                     .font(AppTheme.memoDateFont)
                     .foregroundStyle(AppTheme.meta)
                 ForEach(Array(memo.tags.prefix(3)), id: \.self) { tag in
@@ -634,23 +632,7 @@ struct MemoCardContent: View {
 
     private var displayTitle: String {
         let t = memo.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return t.isEmpty ? untitledNoteLabel : t
-    }
-
-    private var emptyNoteLabel: String {
-        switch language {
-        case .japanese: return "空のノート"
-        case .english: return "Empty note"
-        case .chinese: return "空笔记"
-        }
-    }
-
-    private var untitledNoteLabel: String {
-        switch language {
-        case .japanese: return "無題のノート"
-        case .english: return "Untitled note"
-        case .chinese: return "无标题笔记"
-        }
+        return t.isEmpty ? (isEnglish ? "Untitled note" : "无标题笔记") : t
     }
 
     private var timestampField: MemoListTimestampField {
@@ -659,18 +641,8 @@ struct MemoCardContent: View {
 
     private var timestampLabel: String {
         switch timestampField {
-        case .createdAt:
-            switch language {
-            case .japanese: return "作成"
-            case .english: return "Created"
-            case .chinese: return "创建"
-            }
-        case .updatedAt:
-            switch language {
-            case .japanese: return "更新"
-            case .english: return "Updated"
-            case .chinese: return "更新"
-            }
+        case .createdAt: isEnglish ? "Created" : "创建"
+        case .updatedAt: isEnglish ? "Updated" : "更新"
         }
     }
 }

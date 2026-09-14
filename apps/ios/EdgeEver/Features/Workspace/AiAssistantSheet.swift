@@ -485,16 +485,6 @@ struct AiAssistantSheet: View {
         return prompts.first { $0.id == selectedPromptID }
     }
 
-    private var defaultTargetLanguage: AssistantTargetLanguage {
-        switch env.preferences.uiLanguage {
-        case .chinese: return .english
-        case .japanese: return .japanese
-        case .english: return .simplifiedChinese
-        }
-    }
-
-    private var promptLocale: String { env.preferences.apiLocale }
-
     private var needsTargetLanguage: Bool {
         selectedPrompt?.parameterKind == .targetLanguage || (selectedPrompt == nil && action == .translate)
     }
@@ -507,7 +497,7 @@ struct AiAssistantSheet: View {
         if let refinement, !refinement.isEmpty {
             return AiGenerateInput(
                 action: .custom,
-                locale: env.preferences.apiLocale,
+                locale: env.preferences.isEnglish ? "en-US" : "zh-CN",
                 title: title,
                 contentMarkdown: source,
                 targetLanguage: nil,
@@ -518,7 +508,7 @@ struct AiAssistantSheet: View {
         return AiGenerateInput(
             action: selectedPrompt?.action ?? action,
             promptId: selectedPrompt?.id,
-            locale: env.preferences.apiLocale,
+            locale: env.preferences.isEnglish ? "en-US" : "zh-CN",
             title: title,
             contentMarkdown: source,
             targetLanguage: needsTargetLanguage ? targetLanguage.rawValue : nil,
@@ -577,7 +567,7 @@ struct AiAssistantSheet: View {
         if fallback == .custom {
             selectedPromptID = nil
             action = .custom
-            targetLanguage = defaultTargetLanguage
+            targetLanguage = env.preferences.isEnglish ? .simplifiedChinese : .english
             return
         }
         if allowPromptMatch, let preferred = loaded.first(where: { $0.seedKey == fallback.rawValue }) ?? loaded.first {
@@ -587,14 +577,14 @@ struct AiAssistantSheet: View {
         }
         selectedPromptID = nil
         action = fallback
-        targetLanguage = defaultTargetLanguage
+        targetLanguage = env.preferences.isEnglish ? .simplifiedChinese : .english
     }
 
     private func applyStoredParameters(_ stored: AiAssistantLastActionPreference) {
         if let language = stored.targetLanguage.flatMap(AssistantTargetLanguage.init(rawValue:)) {
             targetLanguage = language
         } else {
-            targetLanguage = defaultTargetLanguage
+            targetLanguage = env.preferences.isEnglish ? .simplifiedChinese : .english
         }
         if let storedTone = stored.tone.flatMap(AssistantTone.init(rawValue:)) {
             tone = storedTone
@@ -604,7 +594,7 @@ struct AiAssistantSheet: View {
     @MainActor
     private func loadPrompts() async {
         do {
-            let locale = promptLocale
+            let locale = env.preferences.isEnglish ? "en-US" : "zh-CN"
             let loaded = try await env.session.client.listAiPrompts(locale: locale)
             prompts = loaded
             applyStoredOrDefaultAction(from: loaded, allowPromptMatch: true)
