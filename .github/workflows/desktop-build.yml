@@ -262,7 +262,7 @@ jobs:
           EDGE_EVER_DESKTOP_BUILD: "1"
         run: bun run build:web
 
-      - name: Verify Web precache budget
+      - name: Verify Web performance budget
         if: matrix.shared_validation
         run: bun run verify:web-performance
 

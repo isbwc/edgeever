@@ -32,7 +32,7 @@ on:
         default: false
         type: boolean
       ios_build_number:
-        description: "Existing App Store Connect build number to submit without rebuilding"
+        description: "App Store Connect build number from Xcode Cloud. Required for iOS delivery."
         required: false
         default: ""
         type: string
@@ -283,72 +283,23 @@ jobs:
         with:
           ref: ${{ needs.plan.outputs.release_target }}
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Set up EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: 21.4.0
-          packager: npm
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Require an Xcode Cloud build number
+        run: |
+          if [[ -z "${{ inputs.ios_build_number }}" ]]; then
+            echo "::error::iOS store delivery uses apps/ios via Xcode Cloud. Pass ios_build_number; do not build from apps/mobile or EAS."
+            exit 1
+          fi
 
       - name: Set up Ruby and fastlane
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
           bundler-cache: true
-          working-directory: apps/mobile
-
-      - name: Install dependencies
-        run: >-
-          bun install --frozen-lockfile
-          --cache-dir "$RUNNER_TEMP/edgeever-bun-cache-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-
-      - name: Build the iOS archive on EAS
-        if: ${{ inputs.ios_build_number == '' }}
-        id: build
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: |
-          test -n "$EXPO_TOKEN"
-          build_json="$(
-            eas build \
-              --platform ios \
-              --profile production \
-              --message "Store delivery ${RELEASE_TAG}" \
-              --freeze-credentials \
-              --non-interactive \
-              --wait \
-              --json
-          )"
-          build_id="$(jq -r 'if type == "array" then .[0].id else .id end' <<<"$build_json")"
-          build_number="$(jq -r 'if type == "array" then .[0].appBuildVersion else .appBuildVersion end' <<<"$build_json")"
-          test -n "$build_id"
-          test "$build_id" != "null"
-          test -n "$build_number"
-          test "$build_number" != "null"
-          echo "build_id=$build_id" >> "$GITHUB_OUTPUT"
-          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
-        working-directory: apps/mobile
-
-      - name: Upload archive to App Store Connect and TestFlight
-        if: ${{ inputs.ios_build_number == '' }}
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          eas submit \
-            --platform ios \
-            --profile store-ios \
-            --id "${{ steps.build.outputs.build_id }}" \
-            --non-interactive \
-            --wait
-        working-directory: apps/mobile
+          working-directory: apps/ios
 
       - name: Submit the uploaded build to App Review
         env:
-          APP_STORE_BUILD_NUMBER: ${{ inputs.ios_build_number || steps.build.outputs.build_number }}
+          APP_STORE_BUILD_NUMBER: ${{ inputs.ios_build_number }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.EDGEEVER_APPLE_API_ISSUER }}
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.EDGEEVER_APPLE_API_KEY_ID }}
           APP_STORE_CONNECT_API_KEY_P8_BASE64: ${{ secrets.EDGEEVER_APPLE_API_KEY_BASE64 }}
@@ -373,4 +324,4 @@ jobs:
             echo "App Store Connect has not exposed build ${APP_STORE_BUILD_NUMBER} yet; retrying in 60 seconds (${attempt}/20)."
             sleep 60
           done
-        working-directory: apps/mobile
+        working-directory: apps/ios
